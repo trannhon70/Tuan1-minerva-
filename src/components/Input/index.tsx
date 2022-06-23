@@ -1,27 +1,47 @@
-import { ChangeEvent, FC, useEffect, useState } from "react";
+import { ChangeEvent, FC, forwardRef, ForwardRefRenderFunction, useEffect, useImperativeHandle, useRef, useState } from "react";
 
-export interface inputProps{
-    onChange?(value: string): void;
+export interface InputRef{
+    setValue(value: string): void;
+    getValue(): string ; 
+}
+export interface inputProps {
+  onChange?(value: string, e:ChangeEvent<HTMLInputElement> | undefined): void;
 }
 
-const Input: FC<inputProps> = props =>{
-    const {onChange}= props;
-    const [currentValue, setCurrentValue] = useState('acb');
+const Input: ForwardRefRenderFunction<InputRef ,inputProps> = (props, ref) => {
+  const { onChange } = props;
+  const [currentValue, setCurrentValue] = useState("acb");
 
-    useEffect(() =>{
-        console.log('useEffect', {CurrentValue});
-        onChange && onChange(currentValue)
-    },[currentValue])
+  const mounted = useRef(false);
+  //tạo event sau khi render sẽ giữ lại sự kiện
+  const evenRef = useRef<ChangeEvent<HTMLInputElement>>();
 
-    const changeInput = (e: ChangeEvent<HTMLInputElement>) =>{
-        setCurrentValue(e.target.value)
-        onChange && onChange(e);
-    };
-    console.log(currentValue);
-    
-    return (
-        <input value={currentValue} onChange={onChange} />
-    )
-}
+  useEffect(() => {
+    if (mounted.current) {
+     
+      onChange && onChange(currentValue, evenRef.current);
+    //   console.log({evenRef});
+      
+    }
+    mounted.current = true
+  }, [currentValue]);
 
-export default Input
+  useImperativeHandle(ref, () =>({
+    setValue(value){
+        setCurrentValue(value)
+    },
+    getValue() {
+        return currentValue;
+    },
+  }))
+
+  const changeInput = (e: ChangeEvent<HTMLInputElement>) => {
+    setCurrentValue(e.target.value);
+    // onChange && onChange(e);
+  };
+  console.log(currentValue);
+
+  return <input value={currentValue} onChange={changeInput} />;
+};
+
+export default forwardRef (Input);
